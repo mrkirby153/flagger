@@ -7,5 +7,5 @@ import org.springframework.boot.runApplication
 class FlaggerApplication
 
 fun main(args: Array<String>) {
-	runApplication<FlaggerApplication>(*args)
+    runApplication<FlaggerApplication>(*args)
 }
