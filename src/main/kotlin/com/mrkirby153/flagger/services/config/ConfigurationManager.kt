@@ -16,6 +16,8 @@ class ConfigurationManager(
 
     private val log = LogManager.getLogger()
 
+    private val configurationCache = mutableMapOf<String, GuildConfiguration>()
+
     init {
         if (configurationDirectory.exists()) {
             if (!configurationDirectory.isDirectory) {
@@ -34,8 +36,11 @@ class ConfigurationManager(
     }
 
     override fun getConfiguration(guild: Guild): GuildConfiguration {
+        if (configurationCache[guild.id] != null) {
+            return configurationCache[guild.id]!!
+        }
         val configFile = File(configurationDirectory, "${guild.id}.json")
-        return if (!configFile.exists()) {
+        val config = if (!configFile.exists()) {
             GuildConfiguration() // Return default configuration
         } else {
             try {
@@ -50,12 +55,15 @@ class ConfigurationManager(
                 }
             }
         }
+        configurationCache[guild.id] = config
+        return config
     }
 
     override fun setConfiguration(guild: Guild, configuration: GuildConfiguration) {
         val configFile = File(configurationDirectory, "${guild.id}.json")
         val newConfig = configuration.serialize()
         configFile.writeText(newConfig)
+        configurationCache[guild.id] = configuration
     }
 
     override fun validateConfiguration(guild: Guild): Map<ConfigValidation, Boolean> {
