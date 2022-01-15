@@ -23,6 +23,11 @@ data class GuildConfiguration(
     var pingModsInCurrentChannel: Boolean = true,
 
     /**
+     * The channel mods should be pinged in if ping in current channel is disabled
+     */
+    var modPingChannel: String? = null,
+
+    /**
      * The id of the log channel
      */
     var logChannel: String? = null,
@@ -40,5 +45,7 @@ data class GuildConfiguration(
     /**
      * The minimum time between mod role pings
      */
-    var minTimeBetweenPings: Long = 0
-): JsonSerializable
+    var minTimeBetweenPings: Long = 0,
+
+    var tooFrequentPingMessage: String = "Moderators have been pinged too recently and may still be looking at chat. Tag an online moderator for assistance instead"
+) : JsonSerializable

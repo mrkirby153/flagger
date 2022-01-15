@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.events.interaction.SlashCommandEvent
 import net.dv8tion.jda.api.sharding.ShardManager
+import net.dv8tion.jda.api.utils.AllowedMentions
 import org.apache.logging.log4j.LogManager
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.ApplicationContext
@@ -23,6 +24,10 @@ class BotCommandConfig(
     @Value("\${bot.command-guilds:}") private val slashCommandGuilds: String,
     private val shardManager: ShardManager
 ) {
+
+    init {
+        AllowedMentions.setDefaultMentions(emptySet())
+    }
 
     private val log = LogManager.getLogger()
 

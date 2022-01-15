@@ -25,4 +25,5 @@ enum class ConfigValidation(val friendlyName: String) {
     MOD_ROLE_EXIST("Mod Role Exists"),
     PROXY_ROLE_EXIST("Proxy Role Exists"),
     LOG_CHANNEL_EXIST("Log Channel Exists"),
+    MOD_PING_CHANNEL_EXIST("Mod Ping Channel Exists")
 }

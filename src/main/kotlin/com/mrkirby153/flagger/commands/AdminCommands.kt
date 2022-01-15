@@ -17,4 +17,9 @@ class AdminCommands {
                 .queue()
         }
     }
+
+    @SlashCommand(name = "config", description = "Displays the configuration", clearance = 100)
+    fun setup(event: SlashCommandEvent) {
+
+    }
 }

@@ -76,6 +76,8 @@ class ConfigurationManager(
             config.proxyModRole?.run { guild.getRoleById(this) != null } ?: false
         results[ConfigValidation.LOG_CHANNEL_EXIST] =
             config.proxyModRole?.run { guild.getGuildChannelById(this) != null } ?: false
+        results[ConfigValidation.MOD_PING_CHANNEL_EXIST] =
+            config.modPingChannel?.run { guild.getGuildChannelById(this) != null } ?: false
         return results
     }
 }
