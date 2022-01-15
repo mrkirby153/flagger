@@ -32,6 +32,8 @@ dependencies {
     implementation("com.mrkirby153:bot-core:4.0-SNAPSHOT")
     implementation("net.dv8tion:JDA:5.0.0-alpha.4")
     implementation("me.mrkirby153:KirbyUtils-Common:3.4-SNAPSHOT")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.13.1")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.1")
 
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
