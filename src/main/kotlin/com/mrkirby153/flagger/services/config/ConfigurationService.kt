@@ -23,7 +23,9 @@ interface ConfigurationService {
 enum class ConfigValidation(val friendlyName: String) {
     ENABLED("Enabled"),
     MOD_ROLE_EXIST("Mod Role Exists"),
+    MOD_ROLE_NOT_MENTIONABLE("Mod Role Not Mentionable"),
     PROXY_ROLE_EXIST("Proxy Role Exists"),
+    PROXY_ROLE_MENTIONABLE("Proxy Role Mentionable"),
     LOG_CHANNEL_EXIST("Log Channel Exists"),
     MOD_PING_CHANNEL_EXIST("Mod Ping Channel Exists")
 }
