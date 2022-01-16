@@ -168,9 +168,11 @@ class ProxyManager(
                 ?.queue { msg ->
                     when (action) {
                         "confirm" -> {
+                            event.reply("Successfully pinged mods").setEphemeral(true).queue()
                             sendModRolePing(msg)
                         }
                         "deny" -> {
+                            event.reply("Canceled").setEphemeral(true).queue()
                             // Do nothing
                         }
                     }
@@ -196,6 +198,8 @@ class ProxyManager(
 
     @EventListener
     fun onMessage(event: MessageReceivedEvent) {
+        if(event.isWebhookMessage || event.author.isBot)
+            return // Ignore bots and webhooks
         handleMessage(event.message)
     }
 }
