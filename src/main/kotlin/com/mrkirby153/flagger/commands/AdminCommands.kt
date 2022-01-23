@@ -2,7 +2,6 @@ package com.mrkirby153.flagger.commands
 
 import com.mrkirby153.botcore.command.slashcommand.SlashCommand
 import com.mrkirby153.botcore.command.slashcommand.SlashCommandAvailability
-import com.mrkirby153.flagger.services.interactionconfig.InteractionConfigPage
 import com.mrkirby153.flagger.services.interactionconfig.InteractionConfigService
 import me.mrkirby153.kcutils.Time
 import net.dv8tion.jda.api.events.interaction.SlashCommandEvent
@@ -30,7 +29,6 @@ class AdminCommands(
         availability = [SlashCommandAvailability.GUILD]
     )
     fun setup(event: SlashCommandEvent) {
-        event.reply(interactionConfigService.getPage(InteractionConfigPage.OVERVIEW, event.guild!!))
-            .setEphemeral(true).queue()
+        event.reply(interactionConfigService.getMenu(event.user, event.guild!!)).setEphemeral(true).queue()
     }
 }

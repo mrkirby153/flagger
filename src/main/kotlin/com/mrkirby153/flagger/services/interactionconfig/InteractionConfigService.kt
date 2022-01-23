@@ -2,25 +2,11 @@ package com.mrkirby153.flagger.services.interactionconfig
 
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Message
-import net.dv8tion.jda.api.events.interaction.ButtonClickEvent
-import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent
+import net.dv8tion.jda.api.entities.User
 
 interface InteractionConfigService {
 
-    /**
-     * Gets the [Message] for the given [page] in the provided [guild]
-     */
-    fun getPage(page: InteractionConfigPage, guild: Guild): Message
-
-    /**
-     * Handle the given [event]
-     */
-    fun handleButtonClick(event: ButtonClickEvent)
-
-    /**
-     * Handle the given [event]
-     */
-    fun handleSelectMenu(event: SelectionMenuEvent)
+    fun getMenu(user: User, guild: Guild): Message
 }
 
 /**

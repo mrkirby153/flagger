@@ -8,9 +8,9 @@ import java.lang.reflect.Field
 
 private val mapper = jacksonObjectMapper()
 
-private data class CachedField(val clazz: Class<*>, val name: String)
+data class CachedField(val clazz: Class<*>, val name: String)
 
-private val fieldCache = mutableMapOf<CachedField, Field>()
+val fieldCache = mutableMapOf<CachedField, Field>()
 
 /**
  * Attempts to deserialize this string into the provided [clazz]
@@ -34,24 +34,55 @@ fun Any.setField(fieldName: String, value: Any?) {
     if (field != null) {
         field.set(this, value)
     } else {
-        var curr: Class<*>? = this.javaClass
-        var found = false
-        // Walk up the class tree
-        do {
-            val f = curr?.getDeclaredField(fieldName)
+        val foundField = findField(this.javaClass, fieldName)
+            ?: throw NoSuchFieldError("Field $fieldName was not found on ${this.javaClass} or any of its superclasses")
+        if (!foundField.trySetAccessible()) {
+            throw SecurityException("Could not make $fieldName in ${this.javaClass} accessible")
+        }
+        fieldCache[cachedField] = foundField
+        foundField.set(this, value)
+    }
+}
+
+fun findField(clazz: Class<*>, field: String): Field? {
+    var curr: Class<*>? = clazz
+    var found = false
+    // Walk up the class tree
+    do {
+        try {
+            val f = curr?.getDeclaredField(field)
             if (f != null) {
-                found = true
-                fieldCache[cachedField] = f
-                if (f.trySetAccessible())
-                    f.set(this, value)
-                else
-                    throw SecurityException("Could not make $fieldName accessible on ${this.javaClass}, found in $curr")
-                break
+                return f
             }
-            curr = curr?.superclass
-        } while (curr != null)
-        if (!found)
-            throw NoSuchFieldError("Field $fieldName was not found on ${this.javaClass} or any of its superclasses")
+        } catch (e: NoSuchFieldException) {
+            // Do nothing
+        }
+        curr = curr?.superclass
+    } while (curr != null)
+    return null
+}
+
+inline fun <reified T> Any.getField(fieldName: String): T? {
+    val cachedField = CachedField(this.javaClass, fieldName)
+    val field = fieldCache[cachedField]
+    if (field != null) {
+        val obj = field.get(this) ?: return null
+        if (obj is T) {
+            return obj
+        } else {
+            throw ClassCastException("Cannot cast $obj to required type")
+        }
+    } else {
+        val foundField = findField(this.javaClass, fieldName)
+            ?: throw NoSuchFieldError("Field $fieldName was not found on ${this.javaClass} or any of its superclasses")
+        foundField.trySetAccessible()
+        fieldCache[cachedField] = foundField
+        val obj = foundField.get(this) ?: return null
+        if (obj is T) {
+            return obj
+        } else {
+            throw ClassCastException("Cannot cast $obj to required type")
+        }
     }
 }
 

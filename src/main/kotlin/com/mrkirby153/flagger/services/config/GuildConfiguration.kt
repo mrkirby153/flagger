@@ -47,5 +47,19 @@ data class GuildConfiguration(
      */
     var minTimeBetweenPings: Long = 0,
 
-    var tooFrequentPingMessage: String = "Moderators have been pinged too recently and may still be looking at chat. Tag an online moderator for assistance instead"
+    var tooFrequentPingMessage: String = "Moderators have been pinged too recently and may still be looking at chat. Tag an online moderator for assistance instead",
+
+    /**
+     * If the proxy will immediately ping if all mods are not online
+     */
+    var skipPingIfOffline: Boolean = false,
+
+    /**
+     * What statuses are considered offline (as a bit string)
+     * 1 - online
+     * 2 - idle
+     * 4 - dnd
+     * 8 - offline
+     */
+    var offlineStatuses: Long = 14
 ) : JsonSerializable
