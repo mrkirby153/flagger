@@ -6,6 +6,8 @@ import com.mrkirby153.flagger.setField
 import com.mrkirby153.interactionmenus.Menu
 import com.mrkirby153.interactionmenus.MenuManager
 import com.mrkirby153.interactionmenus.builders.PageBuilder
+import com.mrkirby153.interactionmenus.builders.SelectMenuBuilder
+import com.mrkirby153.interactionmenus.builders.SelectOptionBuilder
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Message
@@ -23,6 +25,8 @@ import org.springframework.stereotype.Service
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.ScheduledFuture
+import kotlin.math.ceil
+import kotlin.math.min
 
 
 const val GREEN_CHECK = "✅"
@@ -231,35 +235,37 @@ class InteractionConfigManager(
                 appendLine()
                 appendLine("Not seeing the channel you're looking for? Ensure I have permissions to send messages there!")
             }
-            actionRow {
-                button {
-                    value = "Ping Mods in Current Channel"
-                    enabled = false
-                }
-                button {
-                    value = if (settings.pingModsInCurrentChannel) "Enabled" else "Disabled"
-                    style =
-                        if (settings.pingModsInCurrentChannel) ButtonStyle.SUCCESS else ButtonStyle.DANGER
-                    onClick {
-                        if (!settings.pingModsInCurrentChannel) {
-                            settings.modPingChannel = null
-                        }
-                        settings.pingModsInCurrentChannel = !settings.pingModsInCurrentChannel
-                        configService.setConfiguration(guild, settings)
-                        menu.rerender()
-                    }
-                }
-            }
-            if (!settings.pingModsInCurrentChannel) {
-                if (channels.size < 25) {
+            subPage(menu.getState("category"), {
+                menu.setState("category", it)
+            }) {
+                page("Log Channel", "Configure the log channel") {
                     actionRow {
                         select {
-                            channels.forEach { chan ->
-                                option {
-                                    value = "#${chan.name}"
-                                    default = settings.modPingChannel == chan.id
+                            val currChannel =
+                                settings.logChannel?.run { guild.getTextChannelById(this) }
+                            placeholder =
+                                if (currChannel == null) "Select a Channel" else "#${currChannel.name}"
+                            paginated(
+                                this,
+                                listOf(null, *channels.toTypedArray()),
+                                menu.getState<Int>("log_channel_page") ?: 0,
+                                onPageChange = {
+                                    menu.setState("log_channel_page", it)
+                                }
+                            ) { item ->
+                                if (item == null) {
+                                    value = "Disabled"
+                                    default = settings.logChannel == null
                                     onSelect {
-                                        settings.modPingChannel = chan.id
+                                        settings.logChannel = null
+                                        configService.setConfiguration(guild, settings)
+                                        menu.rerender()
+                                    }
+                                } else {
+                                    value = "#${item.name}"
+                                    default = settings.logChannel == item.id
+                                    onSelect {
+                                        settings.logChannel = item.id
                                         configService.setConfiguration(guild, settings)
                                         menu.rerender()
                                     }
@@ -267,36 +273,61 @@ class InteractionConfigManager(
                             }
                         }
                     }
-                } else {
+                }
+                page(
+                    "Mod Ping Channel",
+                    "Configure settings for where moderators should be pinged"
+                ) {
                     actionRow {
                         button {
-                            val chan =
-                                settings.modPingChannel?.run { guild.getTextChannelById(this) }
-                            value = "[${chan?.name ?: "Not Set"}] Click to Change"
-                            style = ButtonStyle.SUCCESS
-                            onClick { h ->
-                                h.sendMessage("Send a message containing the channel you wish to set")
-                                    .setEphemeral(true).queue {
-                                        waitForMessage(h) { evt ->
-                                            evt.message.delete().queue()
-                                            if (evt.message.mentionedChannels.size < 1) {
-                                                h.sendMessage("You did not send a channel mention, please try again")
-                                                    .setEphemeral(true).queue()
-                                                return@waitForMessage
-                                            }
-                                            settings.modPingChannel =
-                                                evt.message.mentionedChannels.first().id
-                                            configService.setConfiguration(guild, settings)
-                                            h.editOriginal(menu.render()).queue()
-                                        }
+                            value = "Ping Mods in Current Channel"
+                            enabled = false
+                        }
+                        button {
+                            value = if (settings.pingModsInCurrentChannel) "Enabled" else "Disabled"
+                            style =
+                                if (settings.pingModsInCurrentChannel) ButtonStyle.SUCCESS else ButtonStyle.DANGER
+                            onClick {
+                                if (!settings.pingModsInCurrentChannel) {
+                                    settings.modPingChannel = null
+                                }
+                                settings.pingModsInCurrentChannel =
+                                    !settings.pingModsInCurrentChannel
+                                configService.setConfiguration(guild, settings)
+                                menu.rerender()
+                            }
+                        }
+                    }
+                    if (!settings.pingModsInCurrentChannel) {
+                        actionRow {
+                            select {
+                                val currChannel =
+                                    settings.modPingChannel?.run { guild.getTextChannelById(this) }
+                                placeholder =
+                                    if (currChannel == null) "Select a Channel" else "#${currChannel.name}"
+                                paginated(
+                                    this,
+                                    channels,
+                                    menu.getState<Int>("mod_ping_page") ?: 0,
+                                    onPageChange = {
+                                        menu.setState("mod_ping_page", it)
+                                    }) { item ->
+                                    value = "#${item.name}"
+                                    default = settings.modPingChannel == item.id
+                                    onSelect {
+                                        settings.modPingChannel = item.id
+                                        configService.setConfiguration(guild, settings)
+                                        menu.rerender()
                                     }
+                                }
                             }
                         }
                     }
                 }
             }
         }
-        settingsMenu.page(InteractionConfigPage.TIMEOUT_CONFIG) {
+        settingsMenu.page(InteractionConfigPage.TIMEOUT_CONFIG)
+        {
             buildSelectPage(this, it, InteractionConfigPage.TIMEOUT_CONFIG)
             text = "Timeout"
         }
@@ -322,6 +353,46 @@ class InteractionConfigManager(
             val lookupKey = Pair(event.author.id, event.channel.id)
             pendingMessages.remove(lookupKey)?.invoke(event)
             pendingMessageFutures.remove(lookupKey)?.cancel(true)
+        }
+    }
+
+    private fun <T> paginated(
+        selectMenuBuilder: SelectMenuBuilder,
+        options: List<T>,
+        page: Int,
+        perPage: Int = 23,
+        onPageChange: (Int) -> Unit,
+        builder: SelectOptionBuilder.(T) -> Unit,
+    ) {
+        val minIndex = page * perPage
+        val maxIndex = min(minIndex + perPage, options.size)
+        val items = options.subList(minIndex, maxIndex)
+        val maxPages = ceil(options.size / perPage.toDouble())
+        log.debug("Generating paginator from ${options.size} options. Page: $page, min: $minIndex, max: $maxIndex, total pages: $maxPages")
+        selectMenuBuilder.min = 1
+        selectMenuBuilder.max = 1
+
+        if (page > 0) {
+            // Previous page
+            selectMenuBuilder.option {
+                value = "Previous Page"
+                onSelect {
+                    onPageChange(page - 1)
+                }
+            }
+        }
+        items.forEach {
+            selectMenuBuilder.option {
+                this.builder(it)
+            }
+        }
+        if (page < maxPages - 1) {
+            selectMenuBuilder.option {
+                value = "Next Page"
+                onSelect {
+                    onPageChange(page + 1)
+                }
+            }
         }
     }
 }
