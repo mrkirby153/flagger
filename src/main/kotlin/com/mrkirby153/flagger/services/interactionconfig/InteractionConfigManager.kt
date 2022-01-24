@@ -139,6 +139,7 @@ class InteractionConfigManager(
                         description = "The role that users will ping"
                         onSelect {
                             menu.setState("role_page", "proxyModRole")
+                            menu.setState("role_page_paginator", 0)
                         }
                         default = menu.getState<String>("role_page") == "proxyModRole"
                     }
@@ -147,6 +148,7 @@ class InteractionConfigManager(
                         description = "The moderator role that will be pinged by the bot"
                         onSelect {
                             menu.setState("role_page", "modRole")
+                            menu.setState("role_page_paginator", 0)
                         }
                         default = menu.getState<String>("role_page") == "modRole"
                     }
@@ -156,16 +158,22 @@ class InteractionConfigManager(
             if (selectedPage != null) {
                 actionRow {
                     select {
-                        guild.roles.filter { it.name != "@everyone" }.forEach { role ->
-                            option {
-                                onSelect {
-                                    settings.setField(selectedPage, role.id)
-                                    configService.setConfiguration(guild, settings)
-                                    menu.rerender()
-                                }
-                                default = role.id == settings.getField(selectedPage)
-                                value = "@${role.name} [${role.id}]"
+                        val selectedRole =
+                            settings.getField<String>(selectedPage)?.run { guild.getRoleById(this) }
+                        placeholder =
+                            if (selectedRole == null) "Select a Role" else "@${selectedRole.name} [${selectedRole.id}]"
+                        paginated(
+                            this, guild.roles.filter { it.name != "@everyone" }, onPageChange = {
+                                menu.setState("role_page_paginator", it)
+                            }, page = menu.getState("role_page_paginator") ?: 0
+                        ) { role ->
+                            onSelect {
+                                settings.setField(selectedPage, role.id)
+                                configService.setConfiguration(guild, settings)
+                                menu.rerender()
                             }
+                            default = role.id == settings.getField(selectedPage)
+                            value = "@${role.name} [${role.id}]"
                         }
                     }
                 }
