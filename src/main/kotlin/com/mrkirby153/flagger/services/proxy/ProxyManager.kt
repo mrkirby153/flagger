@@ -54,9 +54,13 @@ class ProxyManager(
         }
         val settings = configurationService.getConfiguration(message.guild)
         val targetChannel =
-            if (settings.pingModsInCurrentChannel && settings.modPingChannel != null) message.channel as TextChannel else message.guild.getTextChannelById(
+            if (settings.pingModsInCurrentChannel) message.channel as TextChannel else if (settings.modPingChannel != null) message.guild.getTextChannelById(
                 settings.modPingChannel!!
-            ) ?: return
+            ) else null
+        if (targetChannel == null) {
+            log.warn("Target channel not found, skipping ping")
+            return
+        }
         if (!message.guild.selfMember.hasPermission(targetChannel, Permission.MESSAGE_SEND)) {
             log.warn("Attempted to send a mod ping in $targetChannel without permission")
             return
@@ -64,8 +68,8 @@ class ProxyManager(
 
         val modRole = message.guild.getRoleById(settings.modRole!!)
         val messageText = buildString {
-            append(modRole?.asMention ?: "<<Mod Role Not Found>>")
-            append(" ${message.author.nameAndDiscrim}: ${message.contentRaw}")
+            appendLine(modRole?.asMention ?: "<<Mod Role Not Found>>")
+            append("${message.author.asMention}: ${message.contentRaw}")
         }
         val pingMessage = MessageBuilder(messageText).apply {
             setAllowedMentions(listOf(Message.MentionType.ROLE))
@@ -178,7 +182,7 @@ class ProxyManager(
                     }
                     // Disable the buttons in the message
                     proxyMessages.remove(msg.id)?.run {
-                        val p = this.split(':')
+                        val p = this.split('-')
                         val chanId = p[0]
                         val msgId = p[1]
                         event.guild?.getTextChannelById(chanId)?.retrieveMessageById(msgId)
@@ -198,7 +202,7 @@ class ProxyManager(
 
     @EventListener
     fun onMessage(event: MessageReceivedEvent) {
-        if(event.isWebhookMessage || event.author.isBot)
+        if (event.isWebhookMessage || event.author.isBot)
             return // Ignore bots and webhooks
         handleMessage(event.message)
     }
